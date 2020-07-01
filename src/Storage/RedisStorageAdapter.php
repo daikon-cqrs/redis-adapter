@@ -1,4 +1,4 @@
-<?php
+<?php declare(strict_types=1);
 /**
  * This file is part of the daikon-cqrs/redis-adapter project.
  *
@@ -6,21 +6,18 @@
  * file that was distributed with this source code.
  */
 
-declare(strict_types=1);
-
 namespace Daikon\Redis\Storage;
 
+use Daikon\ReadModel\Projection\ProjectionMap;
 use Daikon\Redis\Connector\RedisConnector;
-use Daikon\ReadModel\Projection\ProjectionInterface;
 use Daikon\ReadModel\Storage\StorageAdapterInterface;
+use Daikon\ReadModel\Storage\StorageResultInterface;
 
 final class RedisStorageAdapter implements StorageAdapterInterface
 {
-    /** @var RedisConnector */
-    private $connector;
+    private RedisConnector $connector;
 
-    /** @var array */
-    private $settings;
+    private array $settings;
 
     public function __construct(RedisConnector $connector, array $settings = [])
     {
@@ -28,14 +25,20 @@ final class RedisStorageAdapter implements StorageAdapterInterface
         $this->settings = $settings;
     }
 
-    public function read(string $identifier): ?ProjectionInterface
+    public function read(string $identifier): StorageResultInterface
     {
+        $projections = [];
+        //@todo handle errors
         $hashMap = $this->connector->getConnection()->hGetAll($identifier);
-        if (empty($hashMap)) {
-            return null;
+
+        if (!empty($hashMap)) {
+            $projectionClass = $hashMap['@type'];
+            $projections = [$projectionClass::fromNative($hashMap)];
         }
-        $projectionClass = $hashMap['@type'];
-        return $projectionClass::fromNative($hashMap);
+
+        return new RedisStorageResult(
+            new ProjectionMap($projections)
+        );
     }
 
     public function write(string $identifier, array $data): bool
