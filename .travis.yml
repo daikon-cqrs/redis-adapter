@@ -10,6 +10,8 @@ env:
   global:
     CC_TEST_REPORTER_ID=9b6e7f163b026a5f31b8140e046b98ff10bb89ab3a2f41349ba045e17d2805f5
 
+before_install: echo "extension = redis.so" >> ~/.phpenv/versions/$(phpenv version-name)/etc/php.ini
+
 install:
   - curl -s http://getcomposer.org/installer | php -- --filename=composer
   - chmod +x composer
